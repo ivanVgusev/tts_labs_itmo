@@ -5,5 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "pandas>=3.0.5",
+    "emoji>=2.15.0",
+    "matplotlib>=3.7",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "praatio>=6.0",
+    "pymorphy3>=2.0",
+    "pytest>=8.0",
+    "pyyaml>=6.0",
+    "scikit-learn>=1.3",
 ]

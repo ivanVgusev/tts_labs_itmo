@@ -22,5 +22,4 @@ dependencies = [
     "transformers>=5.16.1",
     "joblib>=1.6.0",
     "pathlib>=1.0.1",
-    "xgboost>=3.4.1",
 ]

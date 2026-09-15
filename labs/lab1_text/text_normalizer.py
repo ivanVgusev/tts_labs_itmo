@@ -1,62 +1,40 @@
-"""Russian text normalizer — skeleton for lab 1.
+"""Простая нормализация русского текста для лабораторной №1."""
 
-Brings corpus text into a form usable for training a speech synthesizer.
-"""
+import re
+import unicodedata
 
 
 class TextNormalizer:
-    """Normalizes text in Russian.
-
-
-        "!.."           -> "!"
-        "«цитата»"      -> '"цитата"'
-        "текст * мусор" -> "текст мусор"
-        "де‑факто"      -> "де-факто"      # U+2011 -> ordinary hyphen
-
-    **Word-changing edits.** The alignment for that utterance becomes invalid and the
-    row must be dropped from the training set — but the logic itself is still needed
-    for lab 5, where arbitrary user input arrives with no alignment at all::
-
-        "в 1995 г."     -> "в тысяча девятьсот девяносто пятом году"
-        "прим. автора"  -> "примечание автора"
-
-    Example:
-        >>> normalizer = TextNormalizer()
-        >>> normalizer.normalize("Расстреливать надо таких писателей!.")
-        'Расстреливать надо таких писателей!'
-    """
+    """Исправляет Unicode, пробелы и пунктуацию без изменения слов."""
 
     def __init__(self):
-        """Prepare the normalizer's resources.
-
-        Put anything expensive to build here: compiled regular expressions,
-        abbreviation and contraction dictionaries, a morphological analyzer.
-        Building them inside :meth:`normalize` means building them 22,200 times.
-        """
-
-        # Here goes your initialization logic
-
-        pass
+        self.replacements = str.maketrans(
+            {
+                "\u2011": "-",
+                "\u2013": "\u2014",
+                "„": '"',
+                "“": '"',
+                "”": '"',
+                "‘": "'",
+                "’": "'",
+                "*": " ",
+            }
+        )
 
     def normalize(self, text: str) -> str:
-        """Normalize a single line.
+        """Возвращает текст в NFC с исправленными пробелами и пунктуацией."""
 
-        Args:
-            text: Raw utterance text, exactly as stored in the corpus metadata.
+        text = unicodedata.normalize("NFC", text)
+        text = text.translate(self.replacements)
 
-        Returns:
-            The normalized text. Returning the input unchanged is valid and common —
-            most lines need nothing done to them.
+        text = re.sub(r"\.{3,}", "\u2026", text)
+        text = re.sub(r"\.{2}", ".", text)
+        text = re.sub(r"([!?])[.\u2026]+", r"\1", text)
+        text = re.sub(r"!{2,}", "!", text)
+        text = re.sub(r"\?{2,}", "?", text)
 
-        Note:
-            Do not strip the combining acute accent ``U+0301``. It looks like part of
-            the letter and is easily lost to "unicode cleanup", but it marks explicit
-            stress and becomes labelled data for stress placement in lab 3.
+        text = re.sub(r"\s+([,.;:!?\u2026])", r"\1", text)
+        text = re.sub(r"([,;:])(?=\S)", r"\1 ", text)
+        text = re.sub(r"\s+", " ", text).strip()
 
-            Normalize to NFC. Strings in NFC and NFD render identically in a terminal
-            and compare unequal.
-        """
-
-        # Here goes your normalization logic
-
-        return text
+        return unicodedata.normalize("NFC", text)

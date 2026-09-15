@@ -1,4 +1,3 @@
-data/*
 *.wav
 *.npy
 *.pth
@@ -15,6 +14,3 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
-
-# данные
-labs/labs1_text/data

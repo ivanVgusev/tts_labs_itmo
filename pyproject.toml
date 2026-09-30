@@ -23,4 +23,7 @@ dependencies = [
     "joblib>=1.6.0",
     "pathlib>=1.0.1",
     "babel>=2.18.0",
+    "nltk>=3.10.3",
+    "jenkspy>=0.4.1",
+    "librosa>=1.0.0",
 ]

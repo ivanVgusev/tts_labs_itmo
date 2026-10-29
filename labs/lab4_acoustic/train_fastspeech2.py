@@ -88,7 +88,7 @@ def load_phone_inventory(path: Path) -> list[str]:
     return phones
 
 
-def make_formatter(wav_dir: Path):
+def make_formatter(wav_dir: Path, duration_wavs: set[str] | None = None):
     """Build a coqui sample formatter over `id|text|phones`.
 
     Column 3 is the model input. Rows whose wav is missing are skipped and counted rather
@@ -109,6 +109,9 @@ def make_formatter(wav_dir: Path):
                 if not wav_path.is_file():
                     skipped += 1
                     continue
+                if duration_wavs is not None and str(wav_path) not in duration_wavs:
+                    skipped += 1
+                    continue
                 items.append({
                     "text": phones,
                     "audio_file": str(wav_path),
@@ -120,6 +123,16 @@ def make_formatter(wav_dir: Path):
         return items
 
     return formatter
+
+
+def load_duration_wavs(path: Path) -> set[str]:
+    wavs = set()
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            wav_path, separator, _alignment_path = line.rstrip("\n").partition("|")
+            if separator:
+                wavs.add(wav_path)
+    return wavs
 
 
 def build_audio_config() -> BaseAudioConfig:
@@ -259,12 +272,13 @@ def main() -> None:
     print("Vocabulary size:", tokenizer.characters.num_chars)
     print("Vocabulary:", tokenizer.characters._char_to_id)
 
+    duration_wavs = load_duration_wavs(args.durations) if args.durations is not None else None
     train_samples, eval_samples = load_tts_samples(
         dataset_config,
         eval_split=True,
         eval_split_max_size=config.eval_split_max_size,
         eval_split_size=config.eval_split_size,
-        formatter=make_formatter(args.wavs),
+        formatter=make_formatter(args.wavs, duration_wavs),
     )
     print(f"train: {len(train_samples)}   eval: {len(eval_samples)}")
 

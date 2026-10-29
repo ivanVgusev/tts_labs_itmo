@@ -46,7 +46,7 @@ def parse_args():
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--metadata", type=Path, default=Path("../../data/metadata_phones.csv"),
                    help="phone metadata from lab 3: id|text|phones")
-    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN/RUSLAN"),
+    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN"),
                    help="directory of {id}.wav at 22050 Hz")
     p.add_argument("--phones", type=Path, default=Path("../../common/phones_mfa.txt"),
                    help="the phone inventory; the model vocabulary is built from it")
@@ -55,7 +55,7 @@ def parse_args():
     p.add_argument("--run-name", default="baseline",
                    help="subdirectory under --output; use a different one per experiment")
     p.add_argument("--epochs", type=int, default=1000)
-    p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--lr", type=float, default=1e-3, help="coqui's Fastspeech2 default, with a NoamLR schedule")
     p.add_argument("--max-audio-seconds", type=float, default=10.0,
                    help="utterances longer than this are dropped; attention is O(n^2)")
@@ -67,6 +67,8 @@ def parse_args():
     p.add_argument("--durations", type=Path, default=None,
                    help="ablation: a wav|npy manifest of precomputed alignments from "
                         "prepare_mfa_durations.py. Turns the internal aligner off")
+    p.add_argument("--continue_path", type=str, default=None,
+                   help="Путь к папке эксперимента для продолжения обучения")
     return p.parse_args()
 
 
@@ -93,7 +95,7 @@ def make_formatter(wav_dir: Path):
     than raising, because a partially downloaded corpus is the common case.
     """
 
-    def formatter(root_path, meta_file, **kwargs):  # noqa: ARG001 - coqui's signature
+    def formatter(root_path, meta_file, **kwargs):
         items = []
         skipped = 0
         with Path(meta_file).open(encoding="utf-8") as fh:
@@ -254,6 +256,8 @@ def main() -> None:
 
     ap = AudioProcessor.init_from_config(config)
     tokenizer, config = TTSTokenizer.init_from_config(config)
+    print("Vocabulary size:", tokenizer.characters.num_chars)
+    print("Vocabulary:", tokenizer.characters._char_to_id)
 
     train_samples, eval_samples = load_tts_samples(
         dataset_config,
@@ -272,12 +276,15 @@ def main() -> None:
 
     model = ForwardTTS(config, ap, tokenizer, speaker_manager=None)
     trainer = Trainer(
-        TrainerArgs(),
+        TrainerArgs(
+            continue_path=args.continue_path
+        ),
         config,
         str(output_path),
         model=model,
         train_samples=train_samples,
         eval_samples=eval_samples,
+        parse_command_line_args=False
     )
     trainer.fit()
 

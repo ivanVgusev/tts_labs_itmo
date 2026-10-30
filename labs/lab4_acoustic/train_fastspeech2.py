@@ -27,6 +27,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
+import torch
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
@@ -36,6 +37,8 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS, ForwardTTSArgs
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
+
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 MULTICHAR_CLASS = "TTS.tts.utils.text.characters.MulticharPhonemes"
 SAMPLE_RATE = 22050

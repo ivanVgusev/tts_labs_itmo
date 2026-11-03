@@ -1,4 +1,4 @@
-"""Build precomputed alignments from the MFA TextGrids — lab 4, ablation 2.
+"""Build precomputed alignments from the MFA TextGrids – lab 4, ablation 2.
 
 Writes one `.npy` per utterance plus a manifest, so training can take durations from the
 forced alignment instead of learning them with the internal aligner::
@@ -20,7 +20,7 @@ forced alignment instead of learning them with the internal aligner::
 That last step ends in a **hard assert**: `dur.sum() == mel_lengths[idx]`. If this script's
 frame count disagrees with what the AudioProcessor produces for the same wav, training
 crashes on the first batch containing that utterance. Which is why the mel length is taken
-from the AudioProcessor itself here rather than computed from the sample count — and why
+from the AudioProcessor itself here rather than computed from the sample count – and why
 `do_trim_silence=False` is not optional.
 
 Two things are checked per utterance and reported rather than silently skipped: that the
@@ -38,6 +38,7 @@ import tqdm
 
 SIL = "<SIL>"
 LENGTH_MARK = "ː"
+TRAINING_CWD = Path(__file__).resolve().parent
 
 
 def parse_args():
@@ -46,7 +47,7 @@ def parse_args():
     p.add_argument("--metadata", type=Path, default=Path("../../data/metadata_phones.csv"),
                    help="id|text|phones from lab 3; defines which utterances and in what order")
     p.add_argument("--textgrids", type=Path, default=Path("../../data/RUSLAN_align_v2"))
-    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN/RUSLAN"))
+    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN"))
     p.add_argument("--out", type=Path, required=True, help="directory for the npy files and manifest")
     p.add_argument("--run", type=Path, default=None,
                    help="a run directory whose config.json supplies the audio settings; "
@@ -87,7 +88,7 @@ def frame_owners(intervals: list[tuple[float, float, str]], n_frames: int,
     """Which phone index owns each mel frame.
 
     A frame is assigned by its centre time, which is the same midpoint rule the lexicon
-    used in lab 3 — boundaries written by two independent tiers can differ in the last
+    used in lab 3 – boundaries written by two independent tiers can differ in the last
     decimal, and a midpoint never lands ambiguously.
 
     Frames past the last interval (the AudioProcessor can produce one or two more than the
@@ -136,6 +137,18 @@ def one_hot(owners: np.ndarray, n_text: int) -> np.ndarray:
     return matrix
 
 
+def path_for_training(path: Path) -> str:
+    """Return a path valid when training is launched from this lab directory.
+
+    The preparation script may be launched either from the repository root or from
+    ``labs/lab4_acoustic``. Coqui does not resolve paths in the attention manifest
+    relative to the manifest itself, so writing the arguments verbatim makes the result
+    depend on the preparation working directory. The training commands in this lab run
+    from ``labs/lab4_acoustic``; normalize every manifest entry for that directory.
+    """
+    return os.path.relpath(path.resolve(), start=TRAINING_CWD)
+
+
 def main() -> None:
     """Write one alignment per utterance and the manifest that points at them."""
     from TTS.config import load_config
@@ -150,11 +163,15 @@ def main() -> None:
     else:
         from TTS.config.shared_configs import BaseAudioConfig
         ap = AudioProcessor.init_from_config(BaseAudioConfig(
-            sample_rate=22050, fft_size=1024, win_length=1024, hop_length=256,
+            sample_rate=22050, resample=True,
+            fft_size=1024, win_length=1024, hop_length=256,
             num_mels=80, mel_fmin=0.0, mel_fmax=8000.0, spec_gain=1.0,
             log_func="np.log", signal_norm=False, preemphasis=0.0, ref_level_db=20,
             do_trim_silence=False, trim_db=60.0,
         ))
+    # Old run configs may predate the sample-rate fix. Duration masks must be computed
+    # from the same resampled waveform as the new training run.
+    ap.resample = True
     hop_seconds = ap.hop_length / ap.sample_rate
     print(f"hop {ap.hop_length} at {ap.sample_rate} Hz = {hop_seconds * 1000:.2f} ms per frame")
 
@@ -185,7 +202,7 @@ def main() -> None:
 
         npy_path = args.out / f"{utt_id}.npy"
         np.save(npy_path, matrix)
-        manifest.append((str(wav_path), str(npy_path)))
+        manifest.append((path_for_training(wav_path), path_for_training(npy_path)))
 
     manifest_path = args.out / "manifest.csv"
     with manifest_path.open("w", encoding="utf-8", newline="") as fh:

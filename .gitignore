@@ -1,4 +1,6 @@
-*.wav
+# *.wav
+data/RUSLAN
+
 *.npy
 *.pth
 *.TextGrid
@@ -16,3 +18,4 @@ __pycache__/
 .DS_Store
 
 coqui-ai-TTS/
+labs/lab4_acoustic/runs

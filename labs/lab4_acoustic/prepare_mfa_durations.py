@@ -39,16 +39,18 @@ import tqdm
 SIL = "<SIL>"
 LENGTH_MARK = "ː"
 TRAINING_CWD = Path(__file__).resolve().parent
+DATA_DIR = (TRAINING_CWD / "../../data").resolve()
 
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--metadata", type=Path, default=Path("../../data/metadata_phones.csv"),
+    p.add_argument("--metadata", type=Path, default=DATA_DIR / "metadata_phones.csv",
                    help="id|text|phones from lab 3; defines which utterances and in what order")
-    p.add_argument("--textgrids", type=Path, default=Path("../../data/RUSLAN_align_v2"))
-    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN"))
-    p.add_argument("--out", type=Path, required=True, help="directory for the npy files and manifest")
+    p.add_argument("--textgrids", type=Path, default=DATA_DIR / "RUSLAN_align_v2")
+    p.add_argument("--wavs", type=Path, default=DATA_DIR / "RUSLAN")
+    p.add_argument("--out", type=Path, default=DATA_DIR / "mfa_durations_resampled",
+                   help="directory for the npy files and manifest")
     p.add_argument("--run", type=Path, default=None,
                    help="a run directory whose config.json supplies the audio settings; "
                         "by default the lab's canonical settings are used")

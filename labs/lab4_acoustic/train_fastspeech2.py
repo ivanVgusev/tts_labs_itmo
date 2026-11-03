@@ -1,4 +1,4 @@
-"""Train FastSpeech2 on RUSLAN phone metadata — lab 4.
+"""Train FastSpeech2 on RUSLAN phone metadata – lab 4.
 
 Baseline (required)::
 
@@ -10,7 +10,7 @@ Ablations (optional), each a flag on the same script so the baseline stays the c
     python train_fastspeech2.py --run-name mfa_dur --durations ../../data/mfa_durations/manifest.csv
     python train_fastspeech2.py --run-name lr3e4 --lr 3e-4 --batch-size 16
 
-Input is the phone metadata from lab 3 — `id|text|phones`, phones space-separated, every
+Input is the phone metadata from lab 3 – `id|text|phones`, phones space-separated, every
 phone drawn from `common/phones_mfa.txt`. The third column is what the model sees; the
 second is carried along only so the file stays readable.
 
@@ -91,7 +91,7 @@ def load_phone_inventory(path: Path) -> list[str]:
     return phones
 
 
-def make_formatter(wav_dir: Path, duration_wavs: set[str] | None = None):
+def make_formatter(wav_dir: Path, duration_wavs: dict[str, str] | None = None):
     """Build a coqui sample formatter over `id|text|phones`.
 
     Column 3 is the model input. Rows whose wav is missing are skipped and counted rather
@@ -100,41 +100,52 @@ def make_formatter(wav_dir: Path, duration_wavs: set[str] | None = None):
 
     def formatter(root_path, meta_file, **kwargs):
         items = []
-        skipped = 0
+        skipped_invalid = 0
+        skipped_missing_wav = 0
+        skipped_duration = 0
         with Path(meta_file).open(encoding="utf-8") as fh:
             for line in fh:
                 cols = line.rstrip("\n").split("|")
                 if len(cols) < 3:
-                    skipped += 1
+                    skipped_invalid += 1
                     continue
                 utt_id, _text, phones = cols[0], cols[1], cols[2]
                 wav_path = wav_dir / f"{utt_id}.wav"
                 if not wav_path.is_file():
-                    skipped += 1
+                    skipped_missing_wav += 1
                     continue
-                if duration_wavs is not None and str(wav_path) not in duration_wavs:
-                    skipped += 1
-                    continue
+                audio_file = str(wav_path)
+                if duration_wavs is not None:
+                    # The same file can be spelled as data/RUSLAN/x.wav,
+                    # ../../data/RUSLAN/x.wav or an absolute path. Match canonically,
+                    # then retain the manifest spelling because Coqui uses it as a key.
+                    audio_file = duration_wavs.get(str(wav_path.resolve()), "")
+                    if not audio_file:
+                        skipped_duration += 1
+                        continue
                 items.append({
                     "text": phones,
-                    "audio_file": str(wav_path),
+                    "audio_file": audio_file,
                     "speaker_name": "ruslan",
                     "root_path": str(wav_dir),
                 })
+        skipped = skipped_invalid + skipped_missing_wav + skipped_duration
         if skipped:
-            print(f"  formatter skipped {skipped} rows")
+            print(f"  formatter skipped {skipped} rows: "
+                  f"invalid={skipped_invalid}, missing_wav={skipped_missing_wav}, "
+                  f"missing_duration={skipped_duration}")
         return items
 
     return formatter
 
 
-def load_duration_wavs(path: Path) -> set[str]:
-    wavs = set()
+def load_duration_wavs(path: Path) -> dict[str, str]:
+    wavs = {}
     with path.open(encoding="utf-8") as fh:
         for line in fh:
             wav_path, separator, _alignment_path = line.rstrip("\n").partition("|")
             if separator:
-                wavs.add(wav_path)
+                wavs[str(Path(wav_path).resolve())] = wav_path
     return wavs
 
 

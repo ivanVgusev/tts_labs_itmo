@@ -51,7 +51,7 @@ def parse_args():
                    help="explicit checkpoint; default is the newest best_model_*.pth")
     p.add_argument("--eval-set", type=Path, default=Path("data/eval_sentences.csv"),
                    help="id|text|phones, the shipped evaluation sentences")
-    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN/RUSLAN"))
+    p.add_argument("--wavs", type=Path, default=Path("../../data/RUSLAN"))
     p.add_argument("--metadata", type=Path, default=Path("../../data/metadata_phones.csv"),
                    help="training metadata, used only for the constant-mel reference")
     p.add_argument("--limit", type=int, default=None,
@@ -139,7 +139,11 @@ def mean_training_mel(ap, metadata: Path, wav_dir: Path, n: int = 200) -> np.nda
             wav_path = wav_dir / f"{cols[0]}.wav"
             if not wav_path.is_file():
                 continue
-            frames.append(ap.melspectrogram(ap.load_wav(str(wav_path))).mean(axis=1))
+            frames.append(
+                ap.melspectrogram(
+                    ap.load_wav(str(wav_path), sr=ap.sample_rate)
+                ).mean(axis=1)
+            )
     if not frames:
         msg = f"No training audio found via {metadata}"
         raise RuntimeError(msg)
@@ -207,7 +211,7 @@ def main() -> None:
             print(f"  skipping {utt_id}: no wav")
             continue
 
-        natural_wav = ap.load_wav(str(wav_path))
+        natural_wav = ap.load_wav(str(wav_path), sr=ap.sample_rate)
         natural_mel = ap.melspectrogram(natural_wav)
 
         result = model.synthesize(phones, config, use_griffin_lim=True)

@@ -10,7 +10,7 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 CONFIG_PATH = Path("labs/lab4_acoustic/runs/yes_pitch_yes_duration/yes_pitch_yes_duration-October-30-2026_03+11PM-71553a3/config.json")
-CHECKPOINT_PATH = Path("labs/lab4_acoustic/runs/yes_pitch_yes_duration/yes_pitch_yes_duration-October-30-2026_03+11PM-71553a3/checkpoint_610000.pth")
+CHECKPOINT_PATH = Path("labs/lab4_acoustic/runs/yes_pitch_yes_duration/yes_pitch_yes_duration-October-30-2026_03+11PM-71553a3/best_model.pth")
 
 # Читаем исходные значения без десериализации Coqpit
 with CONFIG_PATH.open(encoding="utf-8") as f:
@@ -35,6 +35,7 @@ config.characters.characters = char_data["characters"]
 
 # Создаём модель
 ap = AudioProcessor.init_from_config(config)
+ap.power = 1.0
 tokenizer, config = TTSTokenizer.init_from_config(config)
 
 model = ForwardTTS(config, ap, tokenizer, speaker_manager=None) # type: ignore
@@ -79,7 +80,7 @@ assert mel.shape[0] > 0, "Модель не сгенерировала акус�
 # Mel -> WAV через Griffin-Lim
 wav = ap.inv_melspectrogram(mel.T)
 
-output_path = Path("inference//yes_pitch_yes_duration/test_610000.wav")
+output_path = Path("inference//yes_pitch_yes_duration/best_model.wav")
 sf.write(output_path, wav, ap.sample_rate) # type: ignore
 
 print(f"Готово: {output_path.resolve()}")

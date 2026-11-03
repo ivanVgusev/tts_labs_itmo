@@ -153,6 +153,7 @@ def build_audio_config() -> BaseAudioConfig:
     """The audio config the lab 5 vocoder dictates. See the module docstring."""
     return BaseAudioConfig(
         sample_rate=SAMPLE_RATE, # Required for vocoder
+        resample=True,
         fft_size=1024,           # Required for vocoder
         win_length=1024,         # Required for vocoder
         hop_length=256,          # Required for vocoder
